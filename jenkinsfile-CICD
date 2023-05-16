@@ -1,0 +1,46 @@
+// Jenkinsfile (Declarative Pipeline)
+
+pipeline {
+  agent any
+  tools { 
+        maven 'Maven 3.8.5' 
+        jdk 'jdk8' 
+    }
+  stages {
+    stage('Clone Code') {
+      steps {
+        git branch: 'main', url: 'https://github.com/Ray-DevOps/plotly_demo.git'
+      }
+    }
+    stage('Build') {
+      steps {
+        sh 'python userapi.py'
+      }
+    }
+    stage('SonarQube Analysis') {
+      steps {
+        sh 'mvn sonar:sonar'
+      }
+    }
+    stage('Upload Artifacts to Nexus') {
+      steps {
+        sh 'mvn deploy'
+      }
+    }
+   stage('Build Docker Image') {
+      steps {
+        sh 'docker build -t plotlyImage:v1'
+      }
+    }
+   stage('Push Image to DockerHub') {
+      steps {
+        sh 'docker push plotlyRepo/plotlyImage:v1'
+      }
+    }
+   stage('Deploy to EKS cluster') {
+      steps {
+        sh 'kubectl apply -f /full-path-to-manifest-file.yaml'
+   }
+ }
+}
+
