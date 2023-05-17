@@ -44,3 +44,6 @@ pipeline {
  }
 }
 
+// Note that in a real production environment, there woud be authentication requirements with user credentials at each stage
+
+//  in the CICD process.
