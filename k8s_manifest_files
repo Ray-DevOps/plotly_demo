@@ -1,0 +1,67 @@
+# This manifest file creates 3 kubernetes objects.
+
+# First, it creates a deployment for the python application
+
+# Second, it creates a nodeport service to expose the application on the cluster nodes
+
+# finally, it creates a Horizontal Pod Autoscaler to scale the pods such that pod CPU utilization stays at 50%
+
+
+
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: plotly-demo-deployment
+  labels:
+    app: python-app                                  # the deployment label must match the service selector 
+spec:
+  replicas: 1                                        # We don't worry about the number of replicas since we're deploying an HPA (below)
+  selector:
+    matchLabels:
+      app: python-app
+  template:
+    metadata:
+      labels:
+        app: python-app
+    spec:
+      containers:
+      - name: python-app
+        image: plotlyRepo/plotlyImage:v1             # This is the same image specified in our jenkins CICD groovy script
+        ports:
+        - containerPort: 5000
+
+
+---
+
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: plotly-demo-service
+spec:
+  type: NodePort                                     # the nodeport service type exposes the port on the pods to a port on the nodes
+                                                     # We would use loadbalancer service type if we want to configure an external load balancer in the cloud
+  selector:
+    app: python-app                                  # the service selector must match the deployment label
+  ports:      
+    - port: 80
+      targetPort: 5000                               # the service target port is same as the port on which the app is exposed                        
+      nodePort: 30080                                # By default, a random port would be assigned from the range 30000-32767
+
+
+---
+
+
+apiVersion: autoscaling/v1
+kind: HorizontalPodAutoscaler
+metadata:
+ name: plotly-demo-hpa
+spec:
+ scaleTargetRef:
+   apiVersion: apps/v1
+   kind: Deployment
+   name: plotly-demo-deployment                       # This HPA object targets the plotly-demo-deployment
+ minReplicas: 1
+ maxReplicas: 10
+ targetCPUUtilizationPercentage: 50                   # HPA scales pods such that pod CPU utilization stays at 50%
